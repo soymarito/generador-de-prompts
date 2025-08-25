@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Prompts para VEO</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Generador de Prompts para Google VEO</h1>
+        <p>Escribe o graba tu idea de video. Tu texto se guardará automáticamente.</p>
+
+        <textarea id="ideaInput" placeholder="Ej: Un balón de fútbol que se transforma en una estrella brillante..."></textarea>
+        
+        <div class="button-group">
+            <button id="recordButton">🎤 Grabar Idea</button>
+            <button id="clearButton">🗑️ Borrar Idea</button>
+        </div>
+        <p id="statusMessage" class="hidden"></p>
+
+        <button id="generateButton">✨ Generar Prompt</button>
+
+        <div id="loader" class="hidden"></div>
+
+        <h2>Resultado JSON:</h2>
+        <div class="result-container">
+            <pre id="jsonOutput"></pre>
+            <button id="copyButton" class="hidden">Copiar</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

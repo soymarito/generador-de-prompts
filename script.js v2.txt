@@ -1,0 +1,105 @@
+// Espera a que todo el contenido de la página se cargue
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- ELEMENTOS DEL DOM ---
+    const ideaInput = document.getElementById('ideaInput');
+    const generateButton = document.getElementById('generateButton');
+    const jsonOutput = document.getElementById('jsonOutput');
+    const copyButton = document.getElementById('copyButton');
+    const loader = document.getElementById('loader');
+
+    // --- CONFIGURACIÓN ---
+    const API_KEY = "[TU_API_KEY_AQUÍ]"; // ¡Asegúrate de que tu API Key esté aquí!
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+
+    // --- EVENT LISTENERS ---
+    generateButton.addEventListener('click', handleGenerateClick);
+    copyButton.addEventListener('click', handleCopyClick);
+
+    // --- FUNCIONES ---
+
+    async function handleGenerateClick() {
+        const userIdea = ideaInput.value;
+
+        if (!userIdea.trim()) {
+            alert("Por favor, introduce una idea para el video.");
+            return;
+        }
+
+        loader.classList.remove('hidden');
+        jsonOutput.textContent = '';
+        copyButton.classList.add('hidden');
+        
+        try {
+            // --- PROMPT MAESTRO v3.0 - MÚSICA DETALLADA Y VOZ EN ESPAÑOL ---
+            const masterPrompt = `
+Actúa como un experto en creación de prompts para IA de generación de video como Google VEO. Tu tarea es analizar la siguiente idea de video, que estará en español, y generar un prompt detallado en formato JSON.
+IMPORTANTE: A menos que se especifique lo contrario, todos los valores y descripciones dentro del JSON deben estar escritos en inglés (english).
+
+El prompt JSON debe incluir TODAS las siguientes etiquetas:
+"descripcion", "estiloVisual", "movimientoCamara", "iluminacion", "entornoGeneral", "elementos", "dinamicaEscena", "planoFinal", "instruccionTextoPantalla", "refuerzosSemanticos", "musicaDeFondo", "efectosDeSonido", "ambienteSonoro", "vozEnOff_Texto", "vozEnOff_Estilo", "vozEnOff_Texto_es", "vozEnOff_Estilo_es".
+
+REGLAS ESPECÍFICAS:
+1.  Para "musicaDeFondo", describe el género, el ritmo y el estado de ánimo de la música (ej: 'Epic orchestral score, fast-paced', 'Lo-fi hip hop, calm and relaxing').
+2.  Si el usuario especifica un texto exacto para la voz en off en español, pon ESE texto literal en "vozEnOff_Texto_es". Si no, crea un texto apropiado en español.
+3.  Si el usuario describe un acento o región (argentino, mexicano, neutro), describe ese estilo en "vozEnOff_Estilo_es".
+4.  Los campos "vozEnOff_Texto" y "vozEnOff_Estilo" (los originales) siempre deben contener una descripción general en INGLÉS de la narración.
+
+**Idea de video (en español):** ${userIdea}
+
+Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional ni la envoltura de markdown \`\`\`json.
+            `;
+
+            const requestBody = {
+                contents: [{
+                    parts: [{
+                        text: masterPrompt
+                    }]
+                }]
+            };
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error detallado de la API:", errorData);
+                throw new Error(`Error en la API: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            const jsonResult = data.candidates[0].content.parts[0].text;
+            jsonOutput.textContent = jsonResult;
+            
+            copyButton.classList.remove('hidden');
+
+        } catch (error) {
+            console.error("Error al generar el prompt:", error);
+            jsonOutput.textContent = "Hubo un error al contactar la API. Por favor, revisa la consola para más detalles.";
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    function handleCopyClick() {
+        if (jsonOutput.textContent) {
+            navigator.clipboard.writeText(jsonOutput.textContent)
+                .then(() => {
+                    copyButton.textContent = "¡Copiado!";
+                    setTimeout(() => {
+                        copyButton.textContent = "Copiar";
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Error al copiar el texto: ', err);
+                    alert("No se pudo copiar el texto.");
+                });
+        }
+    }
+});
