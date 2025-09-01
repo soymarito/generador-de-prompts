@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
 
     // --- CONFIGURACIÓN ---
-    const API_KEY = "> Mario AR:
-AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY
-"; // ¡Asegúrate de que tu API Key esté aquí!
+    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; // ¡Asegúrate de que tu API Key esté aquí!
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
     // --- LÓGICA DE RECONOCIMIENTO DE VOZ ---
