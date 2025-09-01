@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
 
     // --- CONFIGURACIÓN (sin cambios) ---
-    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; 
+    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; // ¡Asegúrate de que tu API Key esté aquí!
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
     // ====================================================================
@@ -20,17 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
     let isRecording = false;
-    let final_transcript = ''; // Variable para guardar el texto confirmado
+    let final_transcript = ''; // Variable para guardar el texto ya confirmado
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
         recognition.continuous = true;
-        recognition.interimResults = true;
+        recognition.interimResults = true; // Necesitamos esto para la lógica robusta
 
         recognition.onstart = () => {
             isRecording = true;
-            final_transcript = ideaInput.value; // Empezar con el texto que ya exista
+            final_transcript = ideaInput.value; // Empezar con el texto que ya exista en el cuadro
             recordButton.textContent = "🛑 Detener Grabación";
             recordButton.classList.add('recording');
             statusMessage.textContent = "Habla ahora, te estoy escuchando...";
@@ -38,16 +38,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         recognition.onresult = (event) => {
-            let interim_transcript = ''; // Variable para el texto provisional
-            // Iterar sobre todos los resultados desde el último punto final
+            let interim_transcript = ''; // Variable para el texto que se está dictando ahora
+            // Iterar sobre todos los resultados que nos da el navegador
             for (let i = event.resultIndex; i < event.results.length; ++i) {
+                // Si el resultado es final y confirmado, lo añadimos a nuestra variable 'final_transcript'
                 if (event.results[i].isFinal) {
                     final_transcript += event.results[i][0].transcript;
                 } else {
+                    // Si no es final, es el texto provisional que se está procesando
                     interim_transcript += event.results[i][0].transcript;
                 }
             }
-            // Actualizar el campo de texto con la combinación del texto final y el provisional
+            // Actualizamos el campo de texto con la combinación del texto final y el provisional
             ideaInput.value = final_transcript + interim_transcript;
             saveIdeaToMemory();
         };
@@ -59,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onend = () => {
             isRecording = false;
+            // Al detener, el valor final del input se convierte en nuestro nuevo 'final_transcript'
+            final_transcript = ideaInput.value;
             recordButton.textContent = "🎤 Grabar Idea";
             recordButton.classList.remove('recording');
             statusMessage.classList.add('hidden');
@@ -79,7 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadIdeaFromMemory() { const savedIdea = localStorage.getItem('userIdeaText'); if (savedIdea) { ideaInput.value = savedIdea; } }
 
     function handleRecordClick() { if (isRecording) { recognition.stop(); } else { recognition.start(); } }
-    function handleClearClick() { ideaInput.value = ''; jsonOutput.textContent = ''; copyButton.classList.add('hidden'); localStorage.removeItem('userIdeaText'); }
+    function handleClearClick() { 
+        ideaInput.value = ''; 
+        final_transcript = ''; // Limpiar también la memoria de transcripción
+        jsonOutput.textContent = ''; 
+        copyButton.classList.add('hidden'); 
+        localStorage.removeItem('userIdeaText'); 
+    }
 
     async function handleGenerateClick() {
         const userIdea = ideaInput.value;
@@ -131,14 +141,4 @@ Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional n
     }
     function handleCopyClick() { if (jsonOutput.textContent) { navigator.clipboard.writeText(jsonOutput.textContent).then(() => { copyButton.textContent = "¡Copiado!"; setTimeout(() => { copyButton.textContent = "Copiar"; }, 2000); }).catch(err => { console.error('Error al copiar el texto: ', err); alert("No se pudo copiar el texto."); }); } }
     loadIdeaFromMemory();
-});```
-
-### **Los Próximos Pasos**
-
-1.  **Reemplaza** el código de tu `script.js` con esta nueva versión.
-2.  **Sube los archivos actualizados a GitHub.**
-3.  **Espera un par de minutos** para que GitHub despliegue los cambios.
-4.  Abre la URL de tu aplicación en tu celular y **haz una recarga forzada**. (En Chrome para Android, puedes ir al menú de tres puntos y pulsar el icono de recargar).
-5.  ¡Prueba a grabar de nuevo!
-
-Estoy convencido de que esta es la solución definitiva para el problema del audio en el celular. ¡Avísame cómo te va
+});
