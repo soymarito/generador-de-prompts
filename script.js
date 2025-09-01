@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
 
     // --- CONFIGURACIÓN ---
-    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; // ¡Asegúrate de que tu API Key esté aquí!
+    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY
+"; // ¡Asegúrate de que tu API Key esté aquí!
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
     // --- LÓGICA DE RECONOCIMIENTO DE VOZ ---
@@ -33,17 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.classList.remove('hidden');
         };
 
+        // =============================================================
+        // === ¡AQUÍ ESTÁ LA CORRECCIÓN PARA EVITAR LA REPETICIÓN! ===
+        // =============================================================
         recognition.onresult = (event) => {
-            let interimTranscript = '';
-            let finalTranscript = '';
-            for (let i = 0; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
+            let transcript = '';
+            for (let i = 0; i < event.results.length; i++) {
+                // Concatena todos los resultados para formar la frase completa
+                transcript += event.results[i][0].transcript;
             }
-            ideaInput.value = finalTranscript + interimTranscript;
+            ideaInput.value = transcript;
             saveIdeaToMemory();
         };
 
@@ -71,72 +71,33 @@ document.addEventListener('DOMContentLoaded', () => {
     ideaInput.addEventListener('input', saveIdeaToMemory);
 
     // --- LÓGICA DE MEMORIA ---
-    function saveIdeaToMemory() {
-        localStorage.setItem('userIdeaText', ideaInput.value);
-    }
-
-    function loadIdeaFromMemory() {
-        const savedIdea = localStorage.getItem('userIdeaText');
-        if (savedIdea) {
-            ideaInput.value = savedIdea;
-        }
-    }
+    function saveIdeaToMemory() { localStorage.setItem('userIdeaText', ideaInput.value); }
+    function loadIdeaFromMemory() { const savedIdea = localStorage.getItem('userIdeaText'); if (savedIdea) { ideaInput.value = savedIdea; } }
 
     // --- FUNCIONES DE LOS BOTONES ---
-    function handleRecordClick() {
-        if (isRecording) {
-            recognition.stop();
-        } else {
-            recognition.start();
-        }
-    }
+    function handleRecordClick() { if (isRecording) { recognition.stop(); } else { recognition.start(); } }
+    function handleClearClick() { ideaInput.value = ''; jsonOutput.textContent = ''; copyButton.classList.add('hidden'); localStorage.removeItem('userIdeaText'); }
 
-    function handleClearClick() {
-        ideaInput.value = '';
-        jsonOutput.textContent = '';
-        copyButton.classList.add('hidden');
-        localStorage.removeItem('userIdeaText');
-    }
-
-    // --- FUNCIÓN PRINCIPAL DE GENERACIÓN (CON PROMPT MAESTRO CORREGIDO) ---
+    // --- FUNCIÓN PRINCIPAL DE GENERACIÓN ---
     async function handleGenerateClick() {
         const userIdea = ideaInput.value;
-        if (!userIdea.trim()) {
-            alert("Por favor, introduce una idea para el video.");
-            return;
-        }
+        if (!userIdea.trim()) { alert("Por favor, introduce una idea para el video."); return; }
         loader.classList.remove('hidden');
         jsonOutput.textContent = '';
         copyButton.classList.add('hidden');
         try {
-            // --- PROMPT MAESTRO v5.1 - CON INSTRUCCIONES CORREGIDAS ---
             const masterPrompt = `
 Actúa como un experto en creación de prompts para IA de generación de video como Google VEO. Tu tarea es analizar la idea de video del usuario y generar un prompt JSON detallado.
-
 ---
 **REGLA MÁS IMPORTANTE:** La idea del usuario es la directiva creativa principal. El estilo, los elementos y la descripción deben basarse **PRIORITARIAMENTE** en lo que el usuario pida (ej: 'realista', 'cinematográfico', 'blanco y negro', etc.). El siguiente ejemplo es solo una guía para el formato, la estructura y el nivel de detalle, NO para el estilo artístico.
 ---
-
 **EJEMPLO DE FORMATO Y CALIDAD:**
 **Idea de video (ejemplo):** "Un trailer épico de un documental sobre ballenas jorobadas en el océano."
 **JSON Generado (ejemplo):**
 {
-  "descripcion": "An epic, cinematic trailer for a documentary about humpback whales...",
-  "estiloVisual": "Cinematic documentary, high-contrast, deep blue and orange tones...",
-  // ... (el resto del ejemplo de las ballenas) ...
-  "vozEnOff_Estilo_es": "Voz masculina, grave y resonante. Tono calmado, de asombro, estilo documental. Español latino neutro."
-}
----
-
-**AHORA, BASÁNDOTE PRINCIPALMENTE EN LA IDEA DEL USUARIO, genera un nuevo JSON con la misma estructura y calidad del ejemplo.**
-
-**Idea de video (del usuario):** ${userIdea}
-
-Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional ni la envoltura de markdown \`\`\`json. Todos los valores deben estar en inglés, excepto los que terminan en '_es'.
-            `;
-            // NOTA: He acortado el ejemplo de las ballenas aquí para que sea más legible, pero en el código real sigue completo.
-            
-            const fullMasterPrompt = masterPrompt.replace('// ... (el resto del ejemplo de las ballenas) ...', `"movimientoCamara": "Slow, sweeping aerial drone shots; smooth underwater tracking shots following the whales; dramatic slow-motion for key actions like breaches.",
+  "descripcion": "An epic, cinematic trailer for a documentary about humpback whales. The video opens with a majestic shot of a whale breaching in slow motion against a sunset. Quick cuts show whales migrating, bubble-net feeding, and a calf swimming with its mother. The overall tone is awe-inspiring and respectful of nature.",
+  "estiloVisual": "Cinematic documentary, high-contrast, deep blue and orange tones, shot on RED camera, shallow depth of field, anamorphic lens flares.",
+  "movimientoCamara": "Slow, sweeping aerial drone shots; smooth underwater tracking shots following the whales; dramatic slow-motion for key actions like breaches.",
   "iluminacion": "Natural, dramatic lighting. Golden hour sunlight filtering through the water surface. Dark, deep ocean abyss contrasted with bright sunlit surfaces.",
   "entornoGeneral": "The vast, open ocean. Tropical blue waters, arctic icy seas, and deep abyssal zones.",
   "elementos": "Humpback whales (adults and calves), vast ocean, sun, plankton, arctic icebergs, coral reefs.",
@@ -149,39 +110,23 @@ Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional n
   "ambienteSonoro": "Immersive, vast, and deep. A mix of powerful natural sounds and an emotional musical score.",
   "vozEnOff_Texto": "In a world beneath the waves, giants still roam. They sing the songs of the deep, a legacy as old as time itself. Witness their incredible journey.",
   "vozEnOff_Estilo": "Deep, resonant male voice. Calm, awe-inspired, documentary style. Similar to David Attenborough.",
-  "vozEnOff_Texto_es": "En un mundo bajo las olas, los gigantes aún deambulan. Cantan las canciones de las profundidades, un legado tan antiguo como el tiempo. Sé testigo de su increíble viaje."`);
-
-            const requestBody = { contents: [{ parts: [{ text: fullMasterPrompt }] }] };
+  "vozEnOff_Texto_es": "En un mundo bajo las olas, los gigantes aún deambulan. Cantan las canciones de las profundidades, un legado tan antiguo como el tiempo. Sé testigo de su increíble viaje.",
+  "vozEnOff_Estilo_es": "Voz masculina, grave y resonante. Tono calmado, de asombro, estilo documental. Español latino neutro."
+}
+---
+**AHORA, BASÁNDOTE PRINCIPALMENTE EN LA IDEA DEL USUARIO, genera un nuevo JSON con la misma estructura y calidad del ejemplo.**
+**Idea de video (del usuario):** ${userIdea}
+Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional ni la envoltura de markdown \`\`\`json. Todos los valores deben estar en inglés, excepto los que terminan en '_es'.
+            `;
+            const requestBody = { contents: [{ parts: [{ text: masterPrompt }] }] };
             const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Error detallado de la API:", errorData);
-                throw new Error(`Error en la API: ${response.statusText}`);
-            }
+            if (!response.ok) { const errorData = await response.json(); console.error("Error detallado de la API:", errorData); throw new Error(`Error en la API: ${response.statusText}`); }
             const data = await response.json();
             const jsonResult = data.candidates[0].content.parts[0].text;
             jsonOutput.textContent = jsonResult;
             copyButton.classList.remove('hidden');
-        } catch (error) {
-            console.error("Error al generar el prompt:", error);
-            jsonOutput.textContent = "Hubo un error al contactar la API. Por favor, revisa la consola para más detalles.";
-        } finally {
-            loader.classList.add('hidden');
-        }
+        } catch (error) { console.error("Error al generar el prompt:", error); jsonOutput.textContent = "Hubo un error al contactar la API. Por favor, revisa la consola para más detalles."; } finally { loader.classList.add('hidden'); }
     }
-
-    function handleCopyClick() {
-        if (jsonOutput.textContent) {
-            navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
-                copyButton.textContent = "¡Copiado!";
-                setTimeout(() => { copyButton.textContent = "Copiar"; }, 2000);
-            }).catch(err => {
-                console.error('Error al copiar el texto: ', err);
-                alert("No se pudo copiar el texto.");
-            });
-        }
-    }
-
-    // --- INICIALIZACIÓN ---
+    function handleCopyClick() { if (jsonOutput.textContent) { navigator.clipboard.writeText(jsonOutput.textContent).then(() => { copyButton.textContent = "¡Copiado!"; setTimeout(() => { copyButton.textContent = "Copiar"; }, 2000); }).catch(err => { console.error('Error al copiar el texto: ', err); alert("No se pudo copiar el texto."); }); } }
     loadIdeaFromMemory();
 });
