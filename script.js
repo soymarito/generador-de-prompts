@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
 
     // --- CONFIGURACIÓN ---
-    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY
+    const API_KEY = "> Mario AR:
+AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY
 "; // ¡Asegúrate de que tu API Key esté aquí!
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
@@ -34,13 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.classList.remove('hidden');
         };
 
-        // =============================================================
-        // === ¡AQUÍ ESTÁ LA CORRECCIÓN PARA EVITAR LA REPETICIÓN! ===
-        // =============================================================
         recognition.onresult = (event) => {
             let transcript = '';
             for (let i = 0; i < event.results.length; i++) {
-                // Concatena todos los resultados para formar la frase completa
                 transcript += event.results[i][0].transcript;
             }
             ideaInput.value = transcript;
