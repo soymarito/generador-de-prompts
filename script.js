@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- ELEMENTOS DEL DOM ---
+    // --- ELEMENTOS DEL DOM (sin cambios) ---
     const ideaInput = document.getElementById('ideaInput');
     const generateButton = document.getElementById('generateButton');
     const recordButton = document.getElementById('recordButton');
@@ -10,14 +10,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyButton = document.getElementById('copyButton');
     const loader = document.getElementById('loader');
 
-    // --- CONFIGURACIÓN ---
-    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; // ¡Asegúrate de que tu API Key esté aquí!
+    // --- CONFIGURACIÓN (sin cambios) ---
+    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-    // --- LÓGICA DE RECONOCIMIENTO DE VOZ ---
+    // ====================================================================
+    // === LÓGICA DE RECONOCIMIENTO DE VOZ (VERSIÓN ROBUSTA Y CORREGIDA) ===
+    // ====================================================================
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
     let isRecording = false;
+    let final_transcript = ''; // Variable para guardar el texto confirmado
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
@@ -27,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onstart = () => {
             isRecording = true;
+            final_transcript = ideaInput.value; // Empezar con el texto que ya exista
             recordButton.textContent = "🛑 Detener Grabación";
             recordButton.classList.add('recording');
             statusMessage.textContent = "Habla ahora, te estoy escuchando...";
@@ -34,11 +38,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         recognition.onresult = (event) => {
-            let transcript = '';
-            for (let i = 0; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
+            let interim_transcript = ''; // Variable para el texto provisional
+            // Iterar sobre todos los resultados desde el último punto final
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    final_transcript += event.results[i][0].transcript;
+                } else {
+                    interim_transcript += event.results[i][0].transcript;
+                }
             }
-            ideaInput.value = transcript;
+            // Actualizar el campo de texto con la combinación del texto final y el provisional
+            ideaInput.value = final_transcript + interim_transcript;
             saveIdeaToMemory();
         };
 
@@ -58,22 +68,19 @@ document.addEventListener('DOMContentLoaded', () => {
         recordButton.textContent = "Voz no Soportada";
     }
 
-    // --- EVENT LISTENERS ---
+    // --- El resto del archivo (listeners, memoria, generación) no cambia ---
     recordButton.addEventListener('click', handleRecordClick);
     clearButton.addEventListener('click', handleClearClick);
     generateButton.addEventListener('click', handleGenerateClick);
     copyButton.addEventListener('click', handleCopyClick);
     ideaInput.addEventListener('input', saveIdeaToMemory);
 
-    // --- LÓGICA DE MEMORIA ---
     function saveIdeaToMemory() { localStorage.setItem('userIdeaText', ideaInput.value); }
     function loadIdeaFromMemory() { const savedIdea = localStorage.getItem('userIdeaText'); if (savedIdea) { ideaInput.value = savedIdea; } }
 
-    // --- FUNCIONES DE LOS BOTONES ---
     function handleRecordClick() { if (isRecording) { recognition.stop(); } else { recognition.start(); } }
     function handleClearClick() { ideaInput.value = ''; jsonOutput.textContent = ''; copyButton.classList.add('hidden'); localStorage.removeItem('userIdeaText'); }
 
-    // --- FUNCIÓN PRINCIPAL DE GENERACIÓN ---
     async function handleGenerateClick() {
         const userIdea = ideaInput.value;
         if (!userIdea.trim()) { alert("Por favor, introduce una idea para el video."); return; }
@@ -124,4 +131,14 @@ Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional n
     }
     function handleCopyClick() { if (jsonOutput.textContent) { navigator.clipboard.writeText(jsonOutput.textContent).then(() => { copyButton.textContent = "¡Copiado!"; setTimeout(() => { copyButton.textContent = "Copiar"; }, 2000); }).catch(err => { console.error('Error al copiar el texto: ', err); alert("No se pudo copiar el texto."); }); } }
     loadIdeaFromMemory();
-});
+});```
+
+### **Los Próximos Pasos**
+
+1.  **Reemplaza** el código de tu `script.js` con esta nueva versión.
+2.  **Sube los archivos actualizados a GitHub.**
+3.  **Espera un par de minutos** para que GitHub despliegue los cambios.
+4.  Abre la URL de tu aplicación en tu celular y **haz una recarga forzada**. (En Chrome para Android, puedes ir al menú de tres puntos y pulsar el icono de recargar).
+5.  ¡Prueba a grabar de nuevo!
+
+Estoy convencido de que esta es la solución definitiva para el problema del audio en el celular. ¡Avísame cómo te va
