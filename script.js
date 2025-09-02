@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- ELEMENTOS DEL DOM (sin cambios) ---
+    // --- ELEMENTOS DEL DOM ---
     const ideaInput = document.getElementById('ideaInput');
     const generateButton = document.getElementById('generateButton');
     const recordButton = document.getElementById('recordButton');
@@ -10,16 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyButton = document.getElementById('copyButton');
     const loader = document.getElementById('loader');
 
-    // --- CONFIGURACIÓN (sin cambios) ---
+    // --- CONFIGURACIÓN ---
     const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-    // ====================================================================
-    // === LÓGICA DE VOZ REESCRITA (VERSIÓN FINAL Y ROBUSTA) ==============
-    // ====================================================================
+    // --- LÓGICA DE VOZ (VERSIÓN FINAL Y ROBUSTA) ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
-    let isRecording = false; // El estado que controla si el USUARIO quiere grabar.
+    let isRecording = false;
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
@@ -43,13 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onerror = (event) => {
             console.error("Error en el reconocimiento de voz:", event.error);
-            isRecording = false; // Detener en caso de error
+            isRecording = false;
             updateRecordButtonUI();
         };
 
-        // El "guardián" que reinicia la grabación si se detiene por una pausa
         recognition.onend = () => {
-            if (isRecording) { // Si el usuario no ha presionado "Detener", reiniciamos
+            if (isRecording) {
                 recognition.start();
             }
         };
@@ -59,12 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
         recordButton.textContent = "Voz no Soportada";
     }
     
-    // Función centralizada para manejar el clic en el botón de grabar
     function toggleRecording() {
         if (!recognition) return;
-
-        isRecording = !isRecording; // Invertir el estado
-
+        isRecording = !isRecording;
         if (isRecording) {
             recognition.start();
         } else {
@@ -73,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRecordButtonUI();
     }
     
-    // Función para actualizar la apariencia del botón y el mensaje
     function updateRecordButtonUI() {
         if (isRecording) {
             recordButton.textContent = "🛑 Detener Grabación";
@@ -87,17 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
-    // --- El resto del archivo no cambia ---
-    recordButton.addEventListener('click', toggleRecording); // Usamos la nueva función centralizada
+    // --- EVENT LISTENERS ---
+    recordButton.addEventListener('click', toggleRecording);
     clearButton.addEventListener('click', handleClearClick);
     generateButton.addEventListener('click', handleGenerateClick);
     copyButton.addEventListener('click', handleCopyClick);
     ideaInput.addEventListener('input', saveIdeaToMemory);
 
+    // --- LÓGICA DE MEMORIA ---
     function saveIdeaToMemory() { localStorage.setItem('userIdeaText', ideaInput.value); }
     function loadIdeaFromMemory() { const savedIdea = localStorage.getItem('userIdeaText'); if (savedIdea) { ideaInput.value = savedIdea; } }
 
+    // --- FUNCIONES DE LOS BOTONES ---
     function handleClearClick() { 
         if(isRecording) { recognition.stop(); isRecording = false; updateRecordButtonUI(); }
         ideaInput.value = ''; 
@@ -106,46 +100,46 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('userIdeaText'); 
     }
 
+    // --- FUNCIÓN PRINCIPAL DE GENERACIÓN (CON PROMPT MAESTRO v7.0) ---
     async function handleGenerateClick() {
-        // ... El prompt maestro y la lógica de fetch no cambian ...
         const userIdea = ideaInput.value;
         if (!userIdea.trim()) { alert("Por favor, introduce una idea para el video."); return; }
         loader.classList.remove('hidden');
         jsonOutput.textContent = '';
         copyButton.classList.add('hidden');
         try {
+            // --- PROMPT MAESTRO v7.0 - ESTRUCTURA PROFESIONAL FINAL ---
             const masterPrompt = `
-Actúa como un experto en creación de prompts para IA de generación de video como Google VEO. Tu tarea es analizar la idea de video del usuario y generar un prompt JSON detallado.
+Actúa como un experto en creación de prompts para IA de generación de video (como Google VEO, Runway, Pika). Tu tarea es analizar la idea del usuario y generar un prompt JSON detallado y profesional, siguiendo la estructura y calidad del ejemplo.
+IMPORTANTE: Todos los valores dentro del JSON deben estar en inglés.
+
 ---
-**REGLA MÁS IMPORTANTE:** La idea del usuario es la directiva creativa principal. El estilo, los elementos y la descripción deben basarse **PRIORITARIAMENTE** en lo que el usuario pida (ej: 'realista', 'cinematográfico', 'blanco y negro', etc.). El siguiente ejemplo es solo una guía para el formato, la estructura y el nivel de detalle, NO para el estilo artístico.
+**REGLA MÁS IMPORTANTE:** La idea del usuario es la directiva creativa principal. El estilo, los elementos y la descripción deben basarse **PRIORITARIAMENTE** en lo que el usuario pida. El ejemplo es una guía de **formato y calidad**, NO de estilo artístico. La clave es definir una ÚNICA acción principal clara.
 ---
-**EJEMPLO DE FORMATO Y CALIDAD:**
-**Idea de video (ejemplo):** "Un trailer épico de un documental sobre ballenas jorobadas en el océano."
+
+**EJEMPLO DE FORMATO PROFESIONAL:**
+**Idea de video (ejemplo):** "Un anuncio cinemático de un reloj de lujo que se ensambla solo en el aire."
 **JSON Generado (ejemplo):**
 {
-  "descripcion": "An epic, cinematic trailer for a documentary about humpback whales. The video opens with a majestic shot of a whale breaching in slow motion against a sunset. Quick cuts show whales migrating, bubble-net feeding, and a calf swimming with its mother. The overall tone is awe-inspiring and respectful of nature.",
-  "estiloVisual": "Cinematic documentary, high-contrast, deep blue and orange tones, shot on RED camera, shallow depth of field, anamorphic lens flares.",
-  "movimientoCamara": "Slow, sweeping aerial drone shots; smooth underwater tracking shots following the whales; dramatic slow-motion for key actions like breaches.",
-  "iluminacion": "Natural, dramatic lighting. Golden hour sunlight filtering through the water surface. Dark, deep ocean abyss contrasted with bright sunlit surfaces.",
-  "entornoGeneral": "The vast, open ocean. Tropical blue waters, arctic icy seas, and deep abyssal zones.",
-  "elementos": "Humpback whales (adults and calves), vast ocean, sun, plankton, arctic icebergs, coral reefs.",
-  "dinamicaEscena": "Starts calm and majestic, builds intensity with faster cuts and powerful music, ends on an emotional and awe-inspiring note.",
-  "planoFinal": "A close-up shot of a whale's eye, which slowly closes.",
-  "instruccionTextoPantalla": "OCEAN GIANTS - Coming Soon",
-  "refuerzosSemanticos": ["majesty", "nature", "epic", "life", "ocean", "documentary", "connection"],
-  "musicaDeFondo": "Epic orchestral score, builds from a slow piano intro to a powerful crescendo with strings and choir. Similar to Hans Zimmer.",
-  "efectosDeSonido": "Amplified whale songs and calls, the powerful splash of a breach, bubbling water, the cracking of ice.",
-  "ambienteSonoro": "Immersive, vast, and deep. A mix of powerful natural sounds and an emotional musical score.",
-  "vozEnOff_Texto": "In a world beneath the waves, giants still roam. They sing the songs of the deep, a legacy as old as time itself. Witness their incredible journey.",
-  "vozEnOff_Estilo": "Deep, resonant male voice. Calm, awe-inspired, documentary style. Similar to David Attenborough.",
-  "vozEnOff_Texto_es": "En un mundo bajo las olas, los gigantes aún deambulan. Cantan las canciones de las profundidades, un legado tan antiguo como el tiempo. Sé testigo de su increíble viaje.",
-  "vozEnOff_Estilo_es": "Voz masculina, grave y resonante. Tono calmado, de asombro, estilo documental. Español latino neutro."
+  "description": "Cinematic slow-motion reveal of a luxury watch assembling itself in midair. Each component floats into frame with precision: a golden case, intricate gears, the sapphire crystal, and the watch hands, all connecting perfectly. The background is a dark, elegant studio with golden, out-of-focus particles.",
+  "style": "Cinematic, hyperrealistic, luxury product commercial, sophisticated, elegant.",
+  "camera": "Dynamic close-up shots, smooth 360-degree rotation around the watch, dramatic focus pulls between components.",
+  "lighting": "High-contrast studio lighting, strong key light creating golden reflections, soft rim lighting to define edges, dark background.",
+  "environment": "Minimalist dark studio void with subtle, glowing golden particles and soft light beams.",
+  "elements": ["Luxury watch components", "golden gears", "sapphire crystal", "watch hands", "elegant watch case", "glowing particles"],
+  "motion": "Components float gracefully and snap into place with satisfying precision. The final assembly is seamless.",
+  "ending": "A hero shot of the fully assembled, perfect watch, with the second hand starting to tick.",
+  "keywords": ["luxury watch", "product assembly", "cinematic commercial", "slow-motion reveal", "hyperrealistic"]
 }
 ---
-**AHORA, BASÁNDOTE PRINCIPALMENTE EN LA IDEA DEL USUARIO, genera un nuevo JSON con la misma estructura y calidad del ejemplo.**
+
+**AHORA, BASÁNDOTE PRINCIPALMENTE EN LA IDEA DEL USUARIO, genera un nuevo JSON con esta estructura profesional.**
+
 **Idea de video (del usuario):** ${userIdea}
-Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional ni la envoltura de markdown \`\`\`json. Todos los valores deben estar en inglés, excepto los que terminan en '_es'.
+
+Tu respuesta debe ser solo el código JSON, sin explicaciones ni texto adicional. Los campos del JSON deben ser: "description", "style", "camera", "lighting", "environment", "elements", "motion", "ending", "keywords".
             `;
+            
             const requestBody = { contents: [{ parts: [{ text: masterPrompt }] }] };
             const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
             if (!response.ok) { const errorData = await response.json(); console.error("Error detallado de la API:", errorData); throw new Error(`Error en la API: ${response.statusText}`); }
@@ -155,6 +149,9 @@ Tu respuesta debe ser solo el código JSON, sin explicaciones, texto adicional n
             copyButton.classList.remove('hidden');
         } catch (error) { console.error("Error al generar el prompt:", error); jsonOutput.textContent = "Hubo un error al contactar la API. Por favor, revisa la consola para más detalles."; } finally { loader.classList.add('hidden'); }
     }
+    
     function handleCopyClick() { if (jsonOutput.textContent) { navigator.clipboard.writeText(jsonOutput.textContent).then(() => { copyButton.textContent = "¡Copiado!"; setTimeout(() => { copyButton.textContent = "Copiar"; }, 2000); }).catch(err => { console.error('Error al copiar el texto: ', err); alert("No se pudo copiar el texto."); }); } }
+    
+    // --- INICIALIZACIÓN ---
     loadIdeaFromMemory();
 });
