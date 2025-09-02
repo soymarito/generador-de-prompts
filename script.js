@@ -14,23 +14,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-    // --- LÓGICA DE VOZ (VERSIÓN CON REINICIO AUTOMÁTICO) ---
+    // ====================================================================
+    // === LÓGICA DE VOZ REESCRITA (VERSIÓN FINAL Y ROBUSTA) ==============
+    // ====================================================================
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
-    let isRecording = false; // Nuestra variable de control: ¿el usuario quiere estar grabando?
+    let isRecording = false; // El estado que controla si el USUARIO quiere grabar.
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
         recognition.continuous = true;
         recognition.interimResults = false;
-
-        recognition.onstart = () => {
-            recordButton.textContent = "🛑 Detener Grabación";
-            recordButton.classList.add('recording');
-            statusMessage.textContent = "Habla ahora, te estoy escuchando...";
-            statusMessage.classList.remove('hidden');
-        };
 
         recognition.onresult = (event) => {
             let newTranscript = '';
@@ -40,9 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (newTranscript) {
-                if (ideaInput.value.trim().length > 0) {
-                    ideaInput.value += ' ';
-                }
+                if (ideaInput.value.trim().length > 0) { ideaInput.value += ' '; }
                 ideaInput.value += newTranscript.trim();
                 saveIdeaToMemory();
             }
@@ -50,26 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onerror = (event) => {
             console.error("Error en el reconocimiento de voz:", event.error);
-            // ... (código de manejo de errores sin cambios)
+            isRecording = false; // Detener en caso de error
+            updateRecordButtonUI();
         };
 
-        // =================================================================
-        // === ¡LA LÓGICA CLAVE PARA LA GRABACIÓN ININTERRUMPIDA! =========
-        // =================================================================
+        // El "guardián" que reinicia la grabación si se detiene por una pausa
         recognition.onend = () => {
-            // Este evento se dispara SIEMPRE que la grabación se detiene,
-            // ya sea por el usuario o por una pausa.
-
-            // Solo reiniciamos la grabación si nuestra variable de control 'isRecording' es verdadera.
-            // Esta variable solo se pone en 'false' cuando el usuario HACE CLIC en el botón de detener.
-            if (isRecording) {
-                recognition.start(); // ¡La reiniciamos automáticamente!
-            } else {
-                // Si 'isRecording' es falso, significa que el usuario quiso detenerla.
-                // Así que actualizamos la UI.
-                recordButton.textContent = "🎤 Grabar Idea";
-                recordButton.classList.remove('recording');
-                statusMessage.classList.add('hidden');
+            if (isRecording) { // Si el usuario no ha presionado "Detener", reiniciamos
+                recognition.start();
             }
         };
 
@@ -77,22 +58,38 @@ document.addEventListener('DOMContentLoaded', () => {
         recordButton.disabled = true;
         recordButton.textContent = "Voz no Soportada";
     }
+    
+    // Función centralizada para manejar el clic en el botón de grabar
+    function toggleRecording() {
+        if (!recognition) return;
 
-    // --- El resto del archivo no cambia ---
+        isRecording = !isRecording; // Invertir el estado
 
-    function handleRecordClick() {
         if (isRecording) {
-            // El usuario quiere detenerla: ponemos nuestra variable de control en false y paramos.
-            isRecording = false;
-            recognition.stop();
-        } else {
-            // El usuario quiere empezar: ponemos nuestra variable de control en true e iniciamos.
-            isRecording = true;
             recognition.start();
+        } else {
+            recognition.stop();
+        }
+        updateRecordButtonUI();
+    }
+    
+    // Función para actualizar la apariencia del botón y el mensaje
+    function updateRecordButtonUI() {
+        if (isRecording) {
+            recordButton.textContent = "🛑 Detener Grabación";
+            recordButton.classList.add('recording');
+            statusMessage.textContent = "Habla ahora, te estoy escuchando...";
+            statusMessage.classList.remove('hidden');
+        } else {
+            recordButton.textContent = "🎤 Grabar Idea";
+            recordButton.classList.remove('recording');
+            statusMessage.classList.add('hidden');
         }
     }
 
-    // --- El resto de funciones (save, load, clear, generate, copy) son idénticas ---
+
+    // --- El resto del archivo no cambia ---
+    recordButton.addEventListener('click', toggleRecording); // Usamos la nueva función centralizada
     clearButton.addEventListener('click', handleClearClick);
     generateButton.addEventListener('click', handleGenerateClick);
     copyButton.addEventListener('click', handleCopyClick);
@@ -102,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadIdeaFromMemory() { const savedIdea = localStorage.getItem('userIdeaText'); if (savedIdea) { ideaInput.value = savedIdea; } }
 
     function handleClearClick() { 
+        if(isRecording) { recognition.stop(); isRecording = false; updateRecordButtonUI(); }
         ideaInput.value = ''; 
         jsonOutput.textContent = ''; 
         copyButton.classList.add('hidden'); 
