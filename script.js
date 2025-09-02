@@ -11,26 +11,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
 
     // --- CONFIGURACIÓN (sin cambios) ---
-    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; // ¡Asegúrate de que tu API Key esté aquí!
+    const API_KEY = "AIzaSyA6_c49A8N8EG0Uv5aXTqY3B_47xqwMhLY"; 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
     // ====================================================================
-    // === LÓGICA DE RECONOCIMIENTO DE VOZ (VERSIÓN ROBUSTA Y CORREGIDA) ===
+    // === LÓGICA DE VOZ INSPIRADA EN "EL ELEMENTO" (A PRUEBA DE ERRORES) ===
     // ====================================================================
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
     let isRecording = false;
-    let final_transcript = ''; // Variable para guardar el texto ya confirmado
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
         recognition.continuous = true;
-        recognition.interimResults = true; // Necesitamos esto para la lógica robusta
+        recognition.interimResults = false; // Importante: Solo nos interesan los resultados finales para evitar duplicados.
 
         recognition.onstart = () => {
             isRecording = true;
-            final_transcript = ideaInput.value; // Empezar con el texto que ya exista en el cuadro
             recordButton.textContent = "🛑 Detener Grabación";
             recordButton.classList.add('recording');
             statusMessage.textContent = "Habla ahora, te estoy escuchando...";
@@ -38,31 +36,39 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         recognition.onresult = (event) => {
-            let interim_transcript = ''; // Variable para el texto que se está dictando ahora
-            // Iterar sobre todos los resultados que nos da el navegador
+            let newTranscript = '';
+            // Recorremos solo los nuevos resultados desde la última vez que se llamó al evento
             for (let i = event.resultIndex; i < event.results.length; ++i) {
-                // Si el resultado es final y confirmado, lo añadimos a nuestra variable 'final_transcript'
                 if (event.results[i].isFinal) {
-                    final_transcript += event.results[i][0].transcript;
-                } else {
-                    // Si no es final, es el texto provisional que se está procesando
-                    interim_transcript += event.results[i][0].transcript;
+                    newTranscript += event.results[i][0].transcript;
                 }
             }
-            // Actualizamos el campo de texto con la combinación del texto final y el provisional
-            ideaInput.value = final_transcript + interim_transcript;
-            saveIdeaToMemory();
+
+            if (newTranscript) {
+                // Si el cuadro de texto ya tiene algo, añadimos un espacio antes del nuevo texto.
+                if (ideaInput.value.trim().length > 0) {
+                    ideaInput.value += ' ';
+                }
+                ideaInput.value += newTranscript.trim();
+                saveIdeaToMemory();
+            }
         };
 
         recognition.onerror = (event) => {
             console.error("Error en el reconocimiento de voz:", event.error);
-            statusMessage.textContent = `Error: ${event.error}. Inténtalo de nuevo.`;
+            let msg = 'Error en reconocimiento de voz.';
+            if (event.error === 'no-speech') msg = 'No se detectó voz. Intenta de nuevo.';
+            else if (event.error === 'audio-capture') msg = 'No se pudo acceder al micrófono.';
+            else if (event.error === 'not-allowed') msg = 'Permiso de micrófono denegado.';
+            statusMessage.textContent = msg;
+            statusMessage.classList.remove('hidden');
+            // Detener la UI si hay un error
+            isRecording = false; 
+            recognition.stop();
         };
 
         recognition.onend = () => {
             isRecording = false;
-            // Al detener, el valor final del input se convierte en nuestro nuevo 'final_transcript'
-            final_transcript = ideaInput.value;
             recordButton.textContent = "🎤 Grabar Idea";
             recordButton.classList.remove('recording');
             statusMessage.classList.add('hidden');
@@ -72,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recordButton.textContent = "Voz no Soportada";
     }
 
-    // --- El resto del archivo (listeners, memoria, generación) no cambia ---
+    // --- El resto del archivo no cambia ---
     recordButton.addEventListener('click', handleRecordClick);
     clearButton.addEventListener('click', handleClearClick);
     generateButton.addEventListener('click', handleGenerateClick);
@@ -85,13 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRecordClick() { if (isRecording) { recognition.stop(); } else { recognition.start(); } }
     function handleClearClick() { 
         ideaInput.value = ''; 
-        final_transcript = ''; // Limpiar también la memoria de transcripción
         jsonOutput.textContent = ''; 
         copyButton.classList.add('hidden'); 
         localStorage.removeItem('userIdeaText'); 
     }
 
     async function handleGenerateClick() {
+        // ... El prompt maestro y la lógica de fetch no cambian ...
         const userIdea = ideaInput.value;
         if (!userIdea.trim()) { alert("Por favor, introduce una idea para el video."); return; }
         loader.classList.remove('hidden');
